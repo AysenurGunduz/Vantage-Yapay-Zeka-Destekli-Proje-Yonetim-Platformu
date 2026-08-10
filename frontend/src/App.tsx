@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Workspace from "./pages/Workspace";
+import MyTasks from "./pages/MyTasks";
 import Overview from "./pages/Overview";
 import Activity from "./pages/Activity";
 import Login from "./pages/Login";
@@ -28,6 +29,14 @@ function App() {
         element={
           <ProtectedRoute>
             <Workspace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/dashboard/my-tasks"
+        element={
+          <ProtectedRoute>
+            <MyTasks />
           </ProtectedRoute>
         }
       />

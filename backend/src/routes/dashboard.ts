@@ -105,6 +105,51 @@ dashboardRouter.get("/stats", async (req, res) => {
   });
 });
 
+dashboardRouter.get("/my-tasks", async (req, res) => {
+  const { data: memberships, error: membershipError } = await supabase
+    .from("project_members")
+    .select("project_id, projects(name)")
+    .eq("user_id", req.user!.id);
+
+  if (membershipError) {
+    res.status(500).json({ error: membershipError.message });
+    return;
+  }
+
+  if (memberships.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const projectNames = new Map(
+    memberships.map((row) => [row.project_id, (row.projects as unknown as { name: string } | null)?.name ?? "İsimsiz proje"])
+  );
+  const projectIds = [...projectNames.keys()];
+
+  const { data: tasks, error: tasksError } = await supabase
+    .from("tasks")
+    .select("id, title, status, priority, due_date, project_id, tags")
+    .eq("assignee_id", req.user!.id)
+    .in("project_id", projectIds)
+    .neq("status", "done");
+
+  if (tasksError) {
+    res.status(500).json({ error: tasksError.message });
+    return;
+  }
+
+  const myTasks = tasks
+    .map((task) => ({ ...task, project_name: projectNames.get(task.project_id) ?? "İsimsiz proje" }))
+    .sort((a, b) => {
+      if (!a.due_date && !b.due_date) return 0;
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date < b.due_date ? -1 : 1;
+    });
+
+  res.json(myTasks);
+});
+
 const ACTIVITY_LIMIT = 15;
 
 dashboardRouter.get("/activity", async (req, res) => {

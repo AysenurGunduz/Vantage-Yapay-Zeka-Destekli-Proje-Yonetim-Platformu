@@ -5,6 +5,7 @@ function chain(result: unknown) {
   const obj: Record<string, unknown> = {
     select: vi.fn(() => obj),
     eq: vi.fn(() => obj),
+    neq: vi.fn(() => obj),
     in: vi.fn(() => obj),
     order: vi.fn(() => obj),
     limit: vi.fn(() => obj),
@@ -150,5 +151,31 @@ describe("dashboard routes", () => {
         task_title: "Design schema",
       },
     ]);
+  });
+
+  it("returns an empty my-tasks list when the user has no projects", async () => {
+    const res = await request(app).get("/api/dashboard/my-tasks").set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("attaches project names to my-tasks and sorts by due date with no-due-date tasks last", async () => {
+    membershipRows = [
+      { project_id: "project-1", projects: { name: "Website Yenileme" } },
+      { project_id: "project-2", projects: { name: "Mobil Uygulama" } },
+    ];
+    taskRows = [
+      { id: "task-1", title: "Vade yok", status: "todo", priority: "medium", due_date: null, project_id: "project-1" },
+      { id: "task-2", title: "Yakın vade", status: "in_progress", priority: "high", due_date: "2026-08-01", project_id: "project-2" },
+      { id: "task-3", title: "Uzak vade", status: "todo", priority: "low", due_date: "2026-08-10", project_id: "project-1" },
+    ];
+
+    const res = await request(app).get("/api/dashboard/my-tasks").set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body.map((t: { title: string }) => t.title)).toEqual(["Yakın vade", "Uzak vade", "Vade yok"]);
+    expect(res.body[0].project_name).toBe("Mobil Uygulama");
+    expect(res.body[2].project_name).toBe("Website Yenileme");
   });
 });

@@ -96,6 +96,17 @@ export interface SprintSummaryResult {
   periodDays: number;
 }
 
+export interface MyTaskSummary {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  project_id: string;
+  project_name: string;
+  tags: string[];
+}
+
 export interface TaskComment {
   id: string;
   task_id: string;
