@@ -126,7 +126,7 @@ projectTasksRouter.post("/", async (req, res) => {
   res.status(201).json(task);
 });
 
-async function getTaskWithMembership(taskId: string, userId: string) {
+export async function getTaskWithMembership(taskId: string, userId: string) {
   const { data: task } = await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle();
 
   if (!task) {

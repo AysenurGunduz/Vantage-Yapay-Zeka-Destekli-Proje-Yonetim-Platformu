@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiClient";
-import type { OrganizationMember, Task, TaskPriority } from "@/types/api";
+import { useAuth } from "@/lib/AuthContext";
+import type { OrganizationMember, Task, TaskComment, TaskPriority } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -60,6 +61,8 @@ function describeActivity(entry: ActivityEntry, members: OrganizationMember[]): 
       return "etiketler güncellendi";
     case "assignee_id":
       return `atandı: ${memberLabel(members, entry.from_value)} → ${memberLabel(members, entry.to_value)}`;
+    case "commented":
+      return "yorum yaptı";
     default:
       return entry.action_type;
   }
@@ -91,12 +94,24 @@ export function TaskDetailModal({
   const [error, setError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentInput, setCommentInput] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     apiFetch<ActivityEntry[]>(`/api/tasks/${task.id}/activity`)
       .then(setActivity)
       .catch(() => {})
       .finally(() => setActivityLoading(false));
+  }, [task.id]);
+
+  useEffect(() => {
+    apiFetch<TaskComment[]>(`/api/tasks/${task.id}/comments`)
+      .then(setComments)
+      .catch(() => {})
+      .finally(() => setCommentsLoading(false));
   }, [task.id]);
 
   useEffect(() => {
@@ -116,6 +131,35 @@ export function TaskDetailModal({
 
   function removeTag(tag: string) {
     setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
+  async function addComment() {
+    const content = commentInput.trim();
+    if (!content) return;
+    setPostingComment(true);
+    setError(null);
+    try {
+      const comment = await apiFetch<TaskComment>(`/api/tasks/${task.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      });
+      setComments((prev) => [...prev, comment]);
+      setCommentInput("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Yorum eklenemedi");
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  async function removeComment(commentId: string) {
+    setError(null);
+    try {
+      await apiFetch(`/api/tasks/${task.id}/comments/${commentId}`, { method: "DELETE" });
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Yorum kaldırılamadı");
+    }
   }
 
   async function handleSave() {
@@ -284,6 +328,60 @@ export function TaskDetailModal({
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[var(--text-secondary)]">Yorumlar</label>
+          {commentsLoading ? (
+            <p className="text-xs text-[var(--text-muted)]">Yükleniyor...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)]">Henüz bir yorum yok.</p>
+          ) : (
+            <ul className="max-h-32 space-y-2 overflow-y-auto pr-1">
+              {comments.map((comment) => (
+                <li key={comment.id} className="rounded-[6px] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-[var(--text-secondary)]">{memberLabel(members, comment.user_id)}</span>
+                    <span className="flex shrink-0 items-center gap-2 text-[var(--text-muted)]">
+                      {formatActivityTime(comment.created_at)}
+                      {comment.user_id === user?.id && (
+                        <button
+                          onClick={() => removeComment(comment.id)}
+                          aria-label="Yorumu kaldır"
+                          className="text-[var(--text-muted)] hover:text-[#ff6b5b]"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[var(--text-primary)]">{comment.content}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addComment();
+                }
+              }}
+              placeholder="Bir yorum yaz..."
+              className="h-8 min-w-0 flex-1 rounded-[6px] border-[var(--surface-border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] focus-visible:border-[#ff6b5b] focus-visible:ring-[#ff6b5b]/30"
+            />
+            <Button
+              type="button"
+              onClick={addComment}
+              disabled={postingComment || !commentInput.trim()}
+              className="h-8 shrink-0 rounded-[6px] bg-[var(--surface-hover)] px-2.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-border)]"
+            >
+              Gönder
+            </Button>
+          </div>
         </div>
 
         {error && <p className="text-sm text-[#ff6b5b]">{error}</p>}

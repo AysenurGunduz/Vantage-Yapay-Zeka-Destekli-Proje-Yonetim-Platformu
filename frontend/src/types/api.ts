@@ -96,6 +96,14 @@ export interface SprintSummaryResult {
   periodDays: number;
 }
 
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
 export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
 
 export interface OrganizationInvitation {
