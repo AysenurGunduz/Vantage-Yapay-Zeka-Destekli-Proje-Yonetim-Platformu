@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -214,6 +215,8 @@ function HeroProductMockup() {
 }
 
 export default function Landing() {
+  const [ctaEmail, setCtaEmail] = useState("");
+
   return (
     <div className="light-theme min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)]">
       <nav className="sticky top-0 z-20 border-b border-[var(--surface-border)] bg-[var(--surface)]/95 backdrop-blur">
@@ -389,12 +392,14 @@ export default function Landing() {
               <div className="relative mt-7 flex max-w-md gap-4">
                 <input
                   type="email"
+                  value={ctaEmail}
+                  onChange={(e) => setCtaEmail(e.target.value)}
                   placeholder="isim@sirket.com"
                   aria-label="İş e-postası"
                   className="min-h-9 flex-1 rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface-hover)] px-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[#ff6b5b] focus:outline-none"
                 />
                 <Link
-                  to="/signup"
+                  to={ctaEmail.trim() ? `/signup?email=${encodeURIComponent(ctaEmail.trim())}` : "/signup"}
                   className="flex min-h-9 items-center rounded-[6px] bg-[#ff6b5b] px-4 text-sm font-semibold text-[#0d1b3a] transition-colors hover:bg-[#ff8577]"
                 >
                   Kayıt ol
