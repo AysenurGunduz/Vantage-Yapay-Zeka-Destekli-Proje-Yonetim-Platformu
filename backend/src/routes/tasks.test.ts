@@ -26,6 +26,18 @@ function chain(config: ChainConfig) {
 let membership: { role_in_project: string } | null = null;
 let taskResponses: ReturnType<typeof chain>[] = [];
 let activityLogQueue: ReturnType<typeof chain>[] = [];
+let generateTextResult = "Bu görev yakın zamanda tamamlanmadığı için gecikme riski taşıyor.";
+let generateTextShouldThrow = false;
+
+vi.mock("../ai/index.js", () => ({
+  interactiveAI: {
+    generateJSON: vi.fn(async () => ({})),
+    generateText: vi.fn(async () => {
+      if (generateTextShouldThrow) throw new Error("model unreachable");
+      return generateTextResult;
+    }),
+  },
+}));
 
 vi.mock("../lib/supabaseClient.js", () => ({
   supabase: {
@@ -43,6 +55,9 @@ vi.mock("../lib/supabaseClient.js", () => ({
       if (table === "tasks") {
         return taskResponses.shift();
       }
+      if (table === "task_time_entries") {
+        return taskResponses.shift();
+      }
       if (table === "task_activity_log") {
         return activityLogQueue.length > 0 ? activityLogQueue.shift() : chain({ then: { error: null } });
       }
@@ -58,6 +73,8 @@ beforeEach(() => {
   membership = null;
   taskResponses = [];
   activityLogQueue = [];
+  generateTextResult = "Bu görev yakın zamanda tamamlanmadığı için gecikme riski taşıyor.";
+  generateTextShouldThrow = false;
 });
 
 describe("tasks routes", () => {
@@ -319,6 +336,109 @@ describe("tasks routes", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual(logRows);
+  });
+
+  it("returns 404 for a risk explanation on a task that doesn't exist", async () => {
+    taskResponses = [chain({ maybeSingle: { data: null, error: null } })];
+
+    const res = await request(app)
+      .post("/api/tasks/missing-task/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects a risk explanation for a non-member", async () => {
+    const taskRow = { id: "task-1", project_id: "project-1", title: "Design schema", status: "todo" };
+    taskResponses = [chain({ maybeSingle: { data: taskRow, error: null } })];
+
+    const res = await request(app)
+      .post("/api/tasks/task-1/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(403);
+  });
+
+  it("returns a rule-based score and an AI explanation for a project member", async () => {
+    const taskRow = {
+      id: "task-1",
+      project_id: "project-1",
+      title: "Design schema",
+      status: "backlog",
+      due_date: "2020-01-01",
+      created_at: "2019-12-01T00:00:00.000Z",
+    };
+    membership = { role_in_project: "member" };
+    taskResponses = [
+      chain({ maybeSingle: { data: taskRow, error: null } }),
+      chain({ then: { data: [], error: null } }),
+      chain({ then: { data: [], error: null } }),
+    ];
+
+    const res = await request(app)
+      .post("/api/tasks/task-1/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body.level).toBe("high");
+    expect(res.body.score).toBeGreaterThan(0);
+    expect(res.body.explanation).toBe(generateTextResult);
+  });
+
+  it("factors logged time into the risk score and mentions it in the AI prompt", async () => {
+    const taskRow = {
+      id: "task-1",
+      project_id: "project-1",
+      title: "Design schema",
+      status: "in_progress",
+      due_date: "2026-08-10",
+      created_at: "2026-08-01T00:00:00.000Z",
+      estimated_hours: 4,
+    };
+    membership = { role_in_project: "member" };
+    taskResponses = [
+      chain({ maybeSingle: { data: taskRow, error: null } }),
+      chain({ then: { data: [], error: null } }),
+      chain({ then: { data: [{ minutes: 300 }, { minutes: 60 }], error: null } }), // 6 hours spent vs. a 4-hour estimate
+    ];
+
+    const res = await request(app)
+      .post("/api/tasks/task-1/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body.factors.effort).toBeGreaterThan(0);
+
+    const { interactiveAI } = await import("../ai/index.js");
+    const promptArg = vi.mocked(interactiveAI.generateText).mock.calls.at(-1)?.[0] as string;
+    expect(promptArg).toContain("Efor karşılaştırması");
+    expect(promptArg).toContain("harcanan süre tahmini belirgin şekilde aşmış");
+    expect(promptArg).not.toContain("4 saat");
+    expect(promptArg).not.toContain("6.0 saat");
+  });
+
+  it("returns 502 when the AI explanation call throws", async () => {
+    const taskRow = {
+      id: "task-1",
+      project_id: "project-1",
+      title: "Design schema",
+      status: "backlog",
+      due_date: "2020-01-01",
+      created_at: "2019-12-01T00:00:00.000Z",
+    };
+    membership = { role_in_project: "member" };
+    taskResponses = [
+      chain({ maybeSingle: { data: taskRow, error: null } }),
+      chain({ then: { data: [], error: null } }),
+      chain({ then: { data: [], error: null } }),
+    ];
+    generateTextShouldThrow = true;
+
+    const res = await request(app)
+      .post("/api/tasks/task-1/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(502);
   });
 
   it("rejects deleting another member's task for a plain member", async () => {

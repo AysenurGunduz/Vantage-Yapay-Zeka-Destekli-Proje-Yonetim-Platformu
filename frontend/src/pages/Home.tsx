@@ -54,7 +54,9 @@ export default function Home() {
         )}
       </div>
 
-      <Logo className="page-fade-in relative z-10 scale-125" theme={theme} />
+      <Link to="/" className="page-fade-in relative z-10">
+        <Logo className="scale-125" theme={theme} />
+      </Link>
 
       <span className="page-fade-in relative z-10 mt-8 rounded-full bg-[#ff6b5b]/10 px-4 py-1.5 text-sm font-medium text-[#ff6b5b]">
         Yapay Zeka Destekli Proje Yönetimi

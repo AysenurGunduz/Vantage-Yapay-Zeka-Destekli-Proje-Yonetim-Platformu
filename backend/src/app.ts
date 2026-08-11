@@ -14,6 +14,8 @@ import { taskCommentsRouter } from "./routes/taskComments.js";
 import { assignmentSuggestionsRouter } from "./routes/assignmentSuggestions.js";
 import { meRouter } from "./routes/me.js";
 import { userSelfAssessmentRouter } from "./routes/selfAssessment.js";
+import { taskTimeEntriesRouter } from "./routes/timeEntries.js";
+import { taskDependenciesRouter } from "./routes/taskDependencies.js";
 
 export const app = express();
 
@@ -45,3 +47,5 @@ app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
 app.use("/api/tasks/:taskId/assignment-suggestions", assignmentSuggestionsRouter);
 app.use("/api/me", meRouter);
 app.use("/api/users/:userId/self-assessment", userSelfAssessmentRouter);
+app.use("/api/tasks/:taskId/time-entries", taskTimeEntriesRouter);
+app.use("/api/tasks/:taskId/dependencies", taskDependenciesRouter);

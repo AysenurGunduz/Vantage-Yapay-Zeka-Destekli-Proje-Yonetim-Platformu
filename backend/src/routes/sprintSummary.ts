@@ -22,7 +22,12 @@ async function getProjectMembership(projectId: string, userId: string) {
 
 function buildSprintSummaryPrompt(projectName: string, taskTitles: string[]): string {
   const list = taskTitles.map((title) => `- ${title}`).join("\n");
-  return `Sen bir proje yöneticisi asistanısın. Aşağıda "${projectName}" projesinde son ${SPRINT_WINDOW_DAYS} günde tamamlanan görevlerin listesi var. Bunlardan, müşteriye ya da ekibe gönderilebilecek kısa ve profesyonel bir sprint özeti / release notes metni yaz. Madde işaretleri kullanabilirsin ama başka açıklama ekleme, sadece özeti ver.
+  return `Sen bir proje yöneticisi asistanısın. Aşağıda "${projectName}" projesinde son ${SPRINT_WINDOW_DAYS} günde tamamlanan görevlerin listesi var. Bunlardan, müşteriye ya da ekibe gönderilebilecek kısa ve profesyonel bir sprint özeti / release notes metni yaz.
+
+Kurallar:
+- Doğrudan maddelerle başla; herhangi bir başlık, giriş cümlesi ya da kapanış cümlesi ekleme.
+- Türkçe yaz, madde işaretleri kullanabilirsin.
+- Aşağıdaki listede tam olarak ${taskTitles.length} görev var. Çıktında da tam olarak ${taskTitles.length} madde olsun; listede olmayan hiçbir görevden bahsetme, ekleme ya da içerik uydurma.
 
 Tamamlanan görevler:
 ${list}`;
