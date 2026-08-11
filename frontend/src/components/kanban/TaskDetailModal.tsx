@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiClient";
 import { useAuth } from "@/lib/AuthContext";
-import type { OrganizationMember, Task, TaskComment, TaskPriority } from "@/types/api";
+import type { OrganizationMember, Task, TaskComment, TaskPriority, WorkStyleProfile } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -90,6 +90,8 @@ export function TaskDetailModal({
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? "");
   const [assigneeNote, setAssigneeNote] = useState("");
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [assigneeWorkStyle, setAssigneeWorkStyle] = useState<WorkStyleProfile | null>(null);
+  const [workStyleLoading, setWorkStyleLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
@@ -120,6 +122,19 @@ export function TaskDetailModal({
       .then(setMembers)
       .catch(() => {});
   }, [organizationId]);
+
+  useEffect(() => {
+    if (!assigneeId) {
+      setAssigneeWorkStyle(null);
+      return;
+    }
+    setWorkStyleLoading(true);
+    setAssigneeWorkStyle(null);
+    apiFetch<WorkStyleProfile>(`/api/users/${assigneeId}/work-style`)
+      .then(setAssigneeWorkStyle)
+      .catch(() => setAssigneeWorkStyle(null))
+      .finally(() => setWorkStyleLoading(false));
+  }, [assigneeId]);
 
   function addTag() {
     const value = tagInput.trim().toLowerCase();
@@ -284,6 +299,7 @@ export function TaskDetailModal({
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-[var(--text-secondary)]">Atanan kişi</label>
           <select
+            aria-label="Atanan kişi"
             value={assigneeId}
             onChange={(e) => setAssigneeId(e.target.value)}
             className={`${fieldClass} appearance-none`}
@@ -297,6 +313,18 @@ export function TaskDetailModal({
               </option>
             ))}
           </select>
+
+          {assigneeId && (
+            <div className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs">
+              {workStyleLoading ? (
+                <p className="text-[var(--text-muted)]">Çalışma tarzı yükleniyor...</p>
+              ) : assigneeWorkStyle?.summary ? (
+                <p className="text-[var(--text-secondary)]">{assigneeWorkStyle.summary}</p>
+              ) : (
+                <p className="text-[var(--text-muted)]">Bu kişi için henüz bir çalışma tarzı analizi üretilmemiş.</p>
+              )}
+            </div>
+          )}
 
           {assigneeId !== (task.assignee_id ?? "") && (
             <textarea

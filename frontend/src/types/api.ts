@@ -107,6 +107,24 @@ export interface MyTaskSummary {
   tags: string[];
 }
 
+export interface WorkStyleTraits {
+  completedTaskCount: number;
+  onTimeRate: number | null;
+  avgCompletionDays: number | null;
+  effortAccuracy: number | null;
+  topTags: string[];
+  priorityMix: Record<TaskPriority, number>;
+}
+
+export interface WorkStyleProfile {
+  id: string;
+  user_id: string;
+  traits: WorkStyleTraits;
+  summary: string;
+  model_used: string;
+  generated_at: string;
+}
+
 export interface TaskComment {
   id: string;
   task_id: string;
