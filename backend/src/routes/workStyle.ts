@@ -8,7 +8,7 @@ export const userWorkStyleRouter = Router({ mergeParams: true });
 
 userWorkStyleRouter.use(requireAuth);
 
-async function shareOrganization(userIdA: string, userIdB: string): Promise<boolean> {
+export async function shareOrganization(userIdA: string, userIdB: string): Promise<boolean> {
   if (userIdA === userIdB) return true;
 
   const [{ data: orgsA }, { data: orgsB }] = await Promise.all([

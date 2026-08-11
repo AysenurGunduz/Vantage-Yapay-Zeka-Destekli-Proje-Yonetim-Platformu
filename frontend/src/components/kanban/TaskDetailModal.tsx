@@ -3,6 +3,7 @@ import { X, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiClient";
 import { useAuth } from "@/lib/AuthContext";
 import type { AssignmentSuggestion, OrganizationMember, Task, TaskComment, TaskPriority, WorkStyleProfile } from "@/types/api";
+import { selfAssessmentLabel } from "@/lib/selfAssessment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -92,6 +93,7 @@ export function TaskDetailModal({
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [assigneeWorkStyle, setAssigneeWorkStyle] = useState<WorkStyleProfile | null>(null);
   const [workStyleLoading, setWorkStyleLoading] = useState(false);
+  const [assigneeSelfAssessment, setAssigneeSelfAssessment] = useState<Record<string, string> | null>(null);
   const [suggestions, setSuggestions] = useState<AssignmentSuggestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +143,11 @@ export function TaskDetailModal({
       .then(setAssigneeWorkStyle)
       .catch(() => setAssigneeWorkStyle(null))
       .finally(() => setWorkStyleLoading(false));
+
+    setAssigneeSelfAssessment(null);
+    apiFetch<{ self_reported_traits: Record<string, string> }>(`/api/users/${assigneeId}/self-assessment`)
+      .then((res) => setAssigneeSelfAssessment(res.self_reported_traits))
+      .catch(() => setAssigneeSelfAssessment(null));
   }, [assigneeId]);
 
   function addTag() {
@@ -349,6 +356,17 @@ export function TaskDetailModal({
               ) : (
                 <p className="text-[var(--text-muted)]">Bu kişi için henüz bir çalışma tarzı analizi üretilmemiş.</p>
               )}
+            </div>
+          )}
+
+          {assigneeId && assigneeSelfAssessment && Object.keys(assigneeSelfAssessment).length > 0 && (
+            <div className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs">
+              <p className="mb-1 font-medium text-[var(--text-secondary)]">Kendi Beyanı</p>
+              <ul className="space-y-0.5 text-[var(--text-muted)]">
+                {Object.entries(assigneeSelfAssessment).map(([key, value]) => (
+                  <li key={key}>{selfAssessmentLabel(key, value) ?? value}</li>
+                ))}
+              </ul>
             </div>
           )}
 
