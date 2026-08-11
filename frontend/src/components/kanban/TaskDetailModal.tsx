@@ -184,6 +184,25 @@ export function TaskDetailModal({
     }
   }
 
+  async function assignSuggested(userId: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Task>(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ assignee_id: userId, assignee_note: "Önerilen atamalar üzerinden atandı" }),
+      });
+      setAssigneeId(userId);
+      setAssigneeNote("");
+      setSuggestions((prev) => prev.filter((s) => s.userId !== userId));
+      onSave(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Atama yapılamadı");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
     setError(null);
@@ -374,8 +393,9 @@ export function TaskDetailModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setAssigneeId(suggestion.userId)}
-                      className="rounded-[6px] bg-[var(--accent)]/10 px-2 py-1 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20"
+                      onClick={() => assignSuggested(suggestion.userId)}
+                      disabled={saving}
+                      className="rounded-[6px] bg-[var(--accent)]/10 px-2 py-1 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20 disabled:opacity-50"
                     >
                       Ata
                     </button>
