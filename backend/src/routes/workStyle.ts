@@ -75,7 +75,7 @@ Kurallar:
 - Türkçe dışında hiçbir kelime kullanma.`;
 }
 
-async function fetchTaskInputs(userId: string): Promise<WorkStyleTaskInput[]> {
+export async function fetchTaskInputs(userId: string): Promise<WorkStyleTaskInput[]> {
   const { data, error } = await supabase
     .from("tasks")
     .select("status, priority, due_date, created_at, updated_at, estimated_hours, tags")

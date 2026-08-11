@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { X, Trash2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiClient";
 import { useAuth } from "@/lib/AuthContext";
-import type { OrganizationMember, Task, TaskComment, TaskPriority, WorkStyleProfile } from "@/types/api";
+import type { AssignmentSuggestion, OrganizationMember, Task, TaskComment, TaskPriority, WorkStyleProfile } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -92,6 +92,7 @@ export function TaskDetailModal({
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [assigneeWorkStyle, setAssigneeWorkStyle] = useState<WorkStyleProfile | null>(null);
   const [workStyleLoading, setWorkStyleLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<AssignmentSuggestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
@@ -107,6 +108,12 @@ export function TaskDetailModal({
       .then(setActivity)
       .catch(() => {})
       .finally(() => setActivityLoading(false));
+  }, [task.id]);
+
+  useEffect(() => {
+    apiFetch<AssignmentSuggestion[]>(`/api/tasks/${task.id}/assignment-suggestions`)
+      .then(setSuggestions)
+      .catch(() => {});
   }, [task.id]);
 
   useEffect(() => {
@@ -336,6 +343,32 @@ export function TaskDetailModal({
             />
           )}
         </div>
+
+        {suggestions.length > 0 && (
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-secondary)]">Önerilen Atamalar</label>
+            <ul className="space-y-1.5">
+              {suggestions.map((suggestion) => (
+                <li
+                  key={suggestion.userId}
+                  className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-[var(--text-primary)]">
+                      {memberLabel(members, suggestion.userId)}
+                    </span>
+                    <span className="shrink-0 rounded-[6px] bg-[var(--accent)]/10 px-2 py-0.5 text-xs text-[var(--accent)]">
+                      %{suggestion.score} uyum
+                    </span>
+                  </div>
+                  {suggestion.reasons.length > 0 && (
+                    <p className="mt-0.5 text-xs text-[var(--text-muted)]">{suggestion.reasons.join(" · ")}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-[var(--text-secondary)]">Aktivite Geçmişi</label>

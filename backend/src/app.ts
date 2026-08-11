@@ -11,6 +11,7 @@ import { projectAITaskSplitsRouter, aiTaskSplitRouter } from "./routes/aiTaskSpl
 import { projectSprintSummaryRouter } from "./routes/sprintSummary.js";
 import { userWorkStyleRouter } from "./routes/workStyle.js";
 import { taskCommentsRouter } from "./routes/taskComments.js";
+import { assignmentSuggestionsRouter } from "./routes/assignmentSuggestions.js";
 
 export const app = express();
 
@@ -39,3 +40,4 @@ app.use("/api/ai/task-splits", aiTaskSplitRouter);
 app.use("/api/projects/:projectId/sprint-summary", projectSprintSummaryRouter);
 app.use("/api/users/:userId/work-style", userWorkStyleRouter);
 app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
+app.use("/api/tasks/:taskId/assignment-suggestions", assignmentSuggestionsRouter);

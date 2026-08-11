@@ -125,6 +125,12 @@ export interface WorkStyleProfile {
   generated_at: string;
 }
 
+export interface AssignmentSuggestion {
+  userId: string;
+  score: number;
+  reasons: string[];
+}
+
 export interface TaskComment {
   id: string;
   task_id: string;
