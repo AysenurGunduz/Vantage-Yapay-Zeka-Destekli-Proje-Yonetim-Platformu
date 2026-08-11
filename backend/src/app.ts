@@ -9,6 +9,8 @@ import { organizationInvitationsRouter, invitationsRouter } from "./routes/invit
 import { dashboardRouter } from "./routes/dashboard.js";
 import { projectAITaskSplitsRouter, aiTaskSplitRouter } from "./routes/aiTaskSplits.js";
 import { projectSprintSummaryRouter } from "./routes/sprintSummary.js";
+import { taskTimeEntriesRouter } from "./routes/timeEntries.js";
+import { taskDependenciesRouter } from "./routes/taskDependencies.js";
 
 export const app = express();
 
@@ -35,3 +37,5 @@ app.use("/api/dashboard", dashboardRouter);
 app.use("/api/projects/:projectId/ai/task-splits", projectAITaskSplitsRouter);
 app.use("/api/ai/task-splits", aiTaskSplitRouter);
 app.use("/api/projects/:projectId/sprint-summary", projectSprintSummaryRouter);
+app.use("/api/tasks/:taskId/time-entries", taskTimeEntriesRouter);
+app.use("/api/tasks/:taskId/dependencies", taskDependenciesRouter);

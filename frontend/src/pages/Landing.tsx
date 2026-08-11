@@ -12,9 +12,8 @@ import { Logo } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 
 const navLinks = [
-  { label: "Özellikler", href: "#ozellikler" },
   { label: "Çözümler", href: "#cozumler" },
-  { label: "Fiyatlandırma", href: "#fiyatlandirma" },
+  { label: "Özellikler", href: "#ozellikler" },
   { label: "Kaynaklar", href: "#kaynaklar" },
 ];
 

@@ -28,6 +28,7 @@ let suggestionResponses: ReturnType<typeof chain>[] = [];
 let taskResponses: ReturnType<typeof chain>[] = [];
 let activityLogQueue: ReturnType<typeof chain>[] = [];
 let generateJSONResult: unknown = { subtasks: [{ title: "Alt görev 1", estimated_hours: 2 }] };
+let generateJSONQueue: unknown[] | null = null;
 let generateJSONShouldThrow = false;
 
 vi.mock("../lib/supabaseClient.js", () => ({
@@ -61,6 +62,9 @@ vi.mock("../ai/index.js", () => ({
   interactiveAI: {
     generateJSON: vi.fn(async () => {
       if (generateJSONShouldThrow) throw new Error("model unreachable");
+      if (generateJSONQueue && generateJSONQueue.length > 0) {
+        return generateJSONQueue.shift();
+      }
       return generateJSONResult;
     }),
     generateText: vi.fn(async () => ""),
@@ -69,13 +73,16 @@ vi.mock("../ai/index.js", () => ({
 
 const { app } = await import("../app.js");
 const { supabase } = await import("../lib/supabaseClient.js");
+const { interactiveAI } = await import("../ai/index.js");
 
 beforeEach(() => {
+  vi.mocked(interactiveAI.generateJSON).mockClear();
   membership = null;
   suggestionResponses = [];
   taskResponses = [];
   activityLogQueue = [];
   generateJSONResult = { subtasks: [{ title: "Alt görev 1", estimated_hours: 2 }] };
+  generateJSONQueue = null;
   generateJSONShouldThrow = false;
 });
 
@@ -131,6 +138,45 @@ describe("ai task split routes", () => {
         .send({ description: "Kullanıcı profil sayfasını yeniden tasarla" });
 
       expect(res.status).toBe(502);
+    });
+
+    it("retries once with a correction prompt when the first response fails schema validation", async () => {
+      membership = { role_in_project: "member" };
+      const fixedResult = { subtasks: [{ title: "Düzeltilmiş alt görev" }] };
+      generateJSONQueue = [{ oops: true }, fixedResult];
+      const record = {
+        id: "suggestion-1",
+        project_id: "project-1",
+        source_description: "Kullanıcı profil sayfasını yeniden tasarla",
+        suggested_tasks: fixedResult,
+        status: "pending",
+      };
+      suggestionResponses = [chain({ single: { data: record, error: null } })];
+
+      const res = await request(app)
+        .post("/api/projects/project-1/ai/task-splits")
+        .set("Authorization", "Bearer valid-token")
+        .send({ description: "Kullanıcı profil sayfasını yeniden tasarla" });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toEqual(record);
+
+      expect(interactiveAI.generateJSON).toHaveBeenCalledTimes(2);
+      const secondPrompt = vi.mocked(interactiveAI.generateJSON).mock.calls[1][0] as string;
+      expect(secondPrompt).toContain("Önceki cevabın bu şemaya uymadı");
+    });
+
+    it("gives up after one retry if the correction attempt also fails schema validation", async () => {
+      membership = { role_in_project: "member" };
+      generateJSONQueue = [{ oops: true }, { oops: true }];
+
+      const res = await request(app)
+        .post("/api/projects/project-1/ai/task-splits")
+        .set("Authorization", "Bearer valid-token")
+        .send({ description: "Kullanıcı profil sayfasını yeniden tasarla" });
+
+      expect(res.status).toBe(502);
+      expect(interactiveAI.generateJSON).toHaveBeenCalledTimes(2);
     });
 
     it("returns 502 when the AI call throws", async () => {

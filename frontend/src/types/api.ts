@@ -28,9 +28,24 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   assignee_id: string | null;
+  estimated_hours: number | null;
   due_date: string | null;
   tags: string[];
   created_at: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  user_id: string;
+  minutes: number;
+  note: string | null;
+  logged_at: string;
+}
+
+export interface TaskTimeEntriesResponse {
+  entries: TimeEntry[];
+  totalMinutes: number;
+  estimatedHours: number | null;
 }
 
 export type OrganizationRole = "owner" | "admin" | "member";
@@ -73,6 +88,31 @@ export interface DashboardStats {
   byProject: Array<{ project_id: string; project_name: string; count: number }>;
 }
 
+export type RiskLevel = "low" | "medium" | "high";
+
+export interface DashboardRiskTask {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  project_id: string;
+  risk_score: number;
+  risk_level: RiskLevel;
+}
+
+export interface RiskExplanation {
+  score: number;
+  level: RiskLevel;
+  factors: {
+    deadline: number;
+    progress: number;
+    velocity: number;
+    effort: number;
+  };
+  explanation: string;
+}
+
 export interface SuggestedSubtask {
   title: string;
   estimated_hours?: number;
@@ -94,6 +134,15 @@ export interface SprintSummaryResult {
   summary: string | null;
   taskCount: number;
   periodDays: number;
+}
+
+export type TaskDependencyType = "blocked_by" | "relates_to" | "duplicates";
+
+export interface TaskDependency {
+  id: string;
+  direction: "outgoing" | "incoming";
+  dependency_type: TaskDependencyType;
+  related_task: { id: string; title: string; status: TaskStatus } | null;
 }
 
 export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";

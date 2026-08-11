@@ -1,6 +1,8 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabaseClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { interactiveAI } from "../ai/index.js";
+import { calculateDelayRisk, calculateProjectVelocity, type RiskScoreResult } from "../services/riskScore.js";
 
 export const projectTasksRouter = Router({ mergeParams: true });
 export const taskRouter = Router();
@@ -126,7 +128,7 @@ projectTasksRouter.post("/", async (req, res) => {
   res.status(201).json(task);
 });
 
-async function getTaskWithMembership(taskId: string, userId: string) {
+export async function getTaskWithMembership(taskId: string, userId: string) {
   const { data: task } = await supabase.from("tasks").select("*").eq("id", taskId).maybeSingle();
 
   if (!task) {
@@ -240,6 +242,104 @@ taskRouter.get("/:taskId/activity", async (req, res) => {
   }
 
   res.json(data);
+});
+
+const LEVEL_LABELS_TR: Record<RiskScoreResult["level"], string> = {
+  low: "düşük",
+  medium: "orta",
+  high: "yüksek",
+};
+
+function describeFactor(value: number): string {
+  if (value >= 66) return "yüksek";
+  if (value >= 33) return "orta";
+  if (value > 0) return "düşük";
+  return "yok";
+}
+
+function describeEffortOverrun(estimatedHours: number, spentHours: number): string {
+  const ratio = spentHours / estimatedHours;
+  if (ratio <= 1) return "harcanan süre tahminin içinde kalmış";
+  if (ratio <= 1.25) return "harcanan süre tahmini biraz aşmış";
+  if (ratio <= 1.75) return "harcanan süre tahmini belirgin şekilde aşmış";
+  return "harcanan süre tahmini ciddi ölçüde aşmış";
+}
+
+function buildRiskExplanationPrompt(
+  taskTitle: string,
+  risk: RiskScoreResult,
+  effort: { estimatedHours: number; spentHours: number } | null,
+): string {
+  const effortLine = effort
+    ? `\nEfor karşılaştırması: ${describeEffortOverrun(effort.estimatedHours, effort.spentHours)}. Bundan kısaca bahset.`
+    : "";
+
+  return `Sen bir proje yöneticisi asistanısın. "${taskTitle}" adlı görevin gecikme riski kural tabanlı bir motorla ${LEVEL_LABELS_TR[risk.level]} olarak hesaplandı. Buna katkıda bulunan etkenler: son tarihe yakınlık ${describeFactor(risk.factors.deadline)}, beklenen ilerlemeye göre gecikme ${describeFactor(risk.factors.progress)}, projenin geçmiş tamamlama hızına göre risk ${describeFactor(risk.factors.velocity)}, harcanan/tahmini süre oranına göre risk ${describeFactor(risk.factors.effort)}.${effortLine}
+Kullanıcıya bu durumu 2-3 cümlelik kısa, doğal bir Türkçe açıklamayla anlat: görev neden bu kadar riskli (ya da değilse neden değil) ve varsa kısa bir öneri ver. Hiçbir sayı, yüzde ya da İngilizce kelime kullanma; sadece düz, sade Türkçe yaz.`;
+}
+
+taskRouter.post("/:taskId/risk-explanation", async (req, res) => {
+  const { taskId } = req.params;
+  const { task, membership } = await getTaskWithMembership(taskId, req.user!.id);
+
+  if (!task) {
+    res.status(404).json({ error: "Task not found" });
+    return;
+  }
+  if (!membership) {
+    res.status(403).json({ error: "Not a member of this project" });
+    return;
+  }
+
+  const { data: doneTasks, error: doneTasksError } = await supabase
+    .from("tasks")
+    .select("created_at, updated_at")
+    .eq("project_id", task.project_id)
+    .eq("status", "done");
+
+  if (doneTasksError) {
+    res.status(500).json({ error: doneTasksError.message });
+    return;
+  }
+
+  const { data: timeEntries, error: timeEntriesError } = await supabase
+    .from("task_time_entries")
+    .select("minutes")
+    .eq("task_id", taskId);
+
+  if (timeEntriesError) {
+    res.status(500).json({ error: timeEntriesError.message });
+    return;
+  }
+
+  const spentHours = (timeEntries ?? []).reduce((sum: number, entry: { minutes: number }) => sum + entry.minutes, 0) / 60;
+  const estimatedHours: number | null = task.estimated_hours;
+  const hasEffortData = estimatedHours != null && (timeEntries ?? []).length > 0;
+
+  const risk = calculateDelayRisk({
+    status: task.status,
+    dueDate: task.due_date,
+    createdAt: task.created_at,
+    projectAvgCompletionDays: calculateProjectVelocity(doneTasks ?? []),
+    estimatedHours,
+    spentHours: hasEffortData ? spentHours : null,
+  });
+
+  let explanation: string;
+  try {
+    explanation = await interactiveAI.generateText(
+      buildRiskExplanationPrompt(
+        task.title,
+        risk,
+        hasEffortData ? { estimatedHours: estimatedHours!, spentHours } : null,
+      ),
+    );
+  } catch {
+    res.status(502).json({ error: "Risk açıklaması üretilemedi, tekrar dener misin?" });
+    return;
+  }
+
+  res.status(200).json({ score: risk.score, level: risk.level, factors: risk.factors, explanation });
 });
 
 taskRouter.delete("/:taskId", async (req, res) => {

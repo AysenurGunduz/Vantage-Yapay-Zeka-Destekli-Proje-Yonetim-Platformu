@@ -65,4 +65,27 @@ describe("OllamaProvider", () => {
 
     await expect(provider.generateText("selam")).rejects.toThrow("Ollama request failed: 500 Internal Server Error");
   });
+
+  it("throws a clear timeout error when the request is aborted", async () => {
+    vi.mocked(fetch).mockRejectedValue(Object.assign(new Error("aborted"), { name: "AbortError" }));
+
+    const provider = new OllamaProvider("http://localhost:11434", "llama3.2:3b", 0.3, 10);
+
+    await expect(provider.generateText("selam")).rejects.toThrow("Ollama request timed out after 10ms");
+  });
+
+  it("passes an AbortSignal to fetch so a hung request can be cancelled", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ response: "merhaba" }),
+    } as Response);
+
+    const provider = new OllamaProvider("http://localhost:11434", "llama3.2:3b");
+    await provider.generateText("selam");
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:11434/api/generate",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
 });
