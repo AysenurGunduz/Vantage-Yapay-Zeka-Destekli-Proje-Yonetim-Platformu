@@ -364,6 +364,22 @@ export function TaskDetailModal({
                   {suggestion.reasons.length > 0 && (
                     <p className="mt-0.5 text-xs text-[var(--text-muted)]">{suggestion.reasons.join(" · ")}</p>
                   )}
+                  <div className="mt-2 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSuggestions((prev) => prev.filter((s) => s.userId !== suggestion.userId))}
+                      className="rounded-[6px] px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                    >
+                      Reddet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAssigneeId(suggestion.userId)}
+                      className="rounded-[6px] bg-[var(--accent)]/10 px-2 py-1 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20"
+                    >
+                      Ata
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
