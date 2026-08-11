@@ -8,7 +8,7 @@ export const userWorkStyleRouter = Router({ mergeParams: true });
 
 userWorkStyleRouter.use(requireAuth);
 
-async function shareOrganization(userIdA: string, userIdB: string): Promise<boolean> {
+export async function shareOrganization(userIdA: string, userIdB: string): Promise<boolean> {
   if (userIdA === userIdB) return true;
 
   const [{ data: orgsA }, { data: orgsB }] = await Promise.all([
@@ -75,7 +75,7 @@ Kurallar:
 - Türkçe dışında hiçbir kelime kullanma.`;
 }
 
-async function fetchTaskInputs(userId: string): Promise<WorkStyleTaskInput[]> {
+export async function fetchTaskInputs(userId: string): Promise<WorkStyleTaskInput[]> {
   const { data, error } = await supabase
     .from("tasks")
     .select("status, priority, due_date, created_at, updated_at, estimated_hours, tags")
