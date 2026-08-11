@@ -1,10 +1,12 @@
 import { Link, useLocation } from "react-router-dom";
-import { FolderKanban, History, LayoutDashboard } from "lucide-react";
+import { CheckSquare, FolderKanban, History, LayoutDashboard, UserCircle } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/dashboard/workspace", label: "Çalışma Alanı", icon: FolderKanban },
+  { to: "/dashboard/my-tasks", label: "Görevlerim", icon: CheckSquare },
   { to: "/dashboard/overview", label: "Genel Bakış", icon: LayoutDashboard },
   { to: "/dashboard/activity", label: "Aktiviteler", icon: History },
+  { to: "/dashboard/profile", label: "Profil", icon: UserCircle },
 ];
 
 export function PageNav() {

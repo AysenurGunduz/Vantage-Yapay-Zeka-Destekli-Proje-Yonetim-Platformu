@@ -4,10 +4,10 @@ import { useAuth } from "../../lib/AuthContext";
 import { CommandPalette } from "../CommandPalette";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, profile, profileLoading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || (session && profileLoading && !profile)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Yükleniyor...
@@ -17,6 +17,10 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!session) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (profile && !profile.usage_purpose && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return (

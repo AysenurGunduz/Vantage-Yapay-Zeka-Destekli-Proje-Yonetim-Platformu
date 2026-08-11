@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
-import { X, Play, Square, Link2 } from "lucide-react";
+import { X, Trash2, Play, Square, Link2 } from "lucide-react";
 import { apiFetch } from "@/lib/apiClient";
+import { useAuth } from "@/lib/AuthContext";
 import type {
+  AssignmentSuggestion,
   OrganizationMember,
   Task,
+  TaskComment,
   TaskDependency,
   TaskDependencyType,
   TaskPriority,
   TaskTimeEntriesResponse,
   TimeEntry,
+  WorkStyleProfile,
 } from "@/types/api";
+import { selfAssessmentLabel } from "@/lib/selfAssessment";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -94,6 +99,8 @@ function describeActivity(entry: ActivityEntry, members: OrganizationMember[]): 
       return "etiketler güncellendi";
     case "assignee_id":
       return `atandı: ${memberLabel(members, entry.from_value)} → ${memberLabel(members, entry.to_value)}`;
+    case "commented":
+      return "yorum yaptı";
     case "dependency_added":
       return `bağlantı eklendi (${entry.to_value})`;
     default:
@@ -124,10 +131,19 @@ export function TaskDetailModal({
   const [assigneeNote, setAssigneeNote] = useState("");
   const [estimatedHours, setEstimatedHours] = useState(task.estimated_hours != null ? String(task.estimated_hours) : "");
   const [members, setMembers] = useState<OrganizationMember[]>([]);
+  const [assigneeWorkStyle, setAssigneeWorkStyle] = useState<WorkStyleProfile | null>(null);
+  const [workStyleLoading, setWorkStyleLoading] = useState(false);
+  const [assigneeSelfAssessment, setAssigneeSelfAssessment] = useState<Record<string, string> | null>(null);
+  const [suggestions, setSuggestions] = useState<AssignmentSuggestion[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activity, setActivity] = useState<ActivityEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(true);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentInput, setCommentInput] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const { user } = useAuth();
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [timeLoading, setTimeLoading] = useState(true);
@@ -148,6 +164,19 @@ export function TaskDetailModal({
       .then(setActivity)
       .catch(() => {})
       .finally(() => setActivityLoading(false));
+  }, [task.id]);
+
+  useEffect(() => {
+    apiFetch<AssignmentSuggestion[]>(`/api/tasks/${task.id}/assignment-suggestions`)
+      .then(setSuggestions)
+      .catch(() => {});
+  }, [task.id]);
+
+  useEffect(() => {
+    apiFetch<TaskComment[]>(`/api/tasks/${task.id}/comments`)
+      .then(setComments)
+      .catch(() => {})
+      .finally(() => setCommentsLoading(false));
   }, [task.id]);
 
   useEffect(() => {
@@ -254,6 +283,24 @@ export function TaskDetailModal({
       .catch(() => {});
   }, [organizationId]);
 
+  useEffect(() => {
+    if (!assigneeId) {
+      setAssigneeWorkStyle(null);
+      return;
+    }
+    setWorkStyleLoading(true);
+    setAssigneeWorkStyle(null);
+    apiFetch<WorkStyleProfile>(`/api/users/${assigneeId}/work-style`)
+      .then(setAssigneeWorkStyle)
+      .catch(() => setAssigneeWorkStyle(null))
+      .finally(() => setWorkStyleLoading(false));
+
+    setAssigneeSelfAssessment(null);
+    apiFetch<{ self_reported_traits: Record<string, string> }>(`/api/users/${assigneeId}/self-assessment`)
+      .then((res) => setAssigneeSelfAssessment(res.self_reported_traits))
+      .catch(() => setAssigneeSelfAssessment(null));
+  }, [assigneeId]);
+
   function addTag() {
     const value = tagInput.trim().toLowerCase();
     if (value && !tags.includes(value)) {
@@ -264,6 +311,54 @@ export function TaskDetailModal({
 
   function removeTag(tag: string) {
     setTags((prev) => prev.filter((t) => t !== tag));
+  }
+
+  async function addComment() {
+    const content = commentInput.trim();
+    if (!content) return;
+    setPostingComment(true);
+    setError(null);
+    try {
+      const comment = await apiFetch<TaskComment>(`/api/tasks/${task.id}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ content }),
+      });
+      setComments((prev) => [...prev, comment]);
+      setCommentInput("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Yorum eklenemedi");
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  async function removeComment(commentId: string) {
+    setError(null);
+    try {
+      await apiFetch(`/api/tasks/${task.id}/comments/${commentId}`, { method: "DELETE" });
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Yorum kaldırılamadı");
+    }
+  }
+
+  async function assignSuggested(userId: string) {
+    setSaving(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Task>(`/api/tasks/${task.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ assignee_id: userId, assignee_note: "Önerilen atamalar üzerinden atandı" }),
+      });
+      setAssigneeId(userId);
+      setAssigneeNote("");
+      setSuggestions((prev) => prev.filter((s) => s.userId !== userId));
+      onSave(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Atama yapılamadı");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSave() {
@@ -569,6 +664,7 @@ export function TaskDetailModal({
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--text-secondary)]">Atanan kişi</label>
               <select
+                aria-label="Atanan kişi"
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
                 className={`${fieldClass} appearance-none`}
@@ -583,6 +679,29 @@ export function TaskDetailModal({
                 ))}
               </select>
 
+              {assigneeId && (
+                <div className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs">
+                  {workStyleLoading ? (
+                    <p className="text-[var(--text-muted)]">Çalışma tarzı yükleniyor...</p>
+                  ) : assigneeWorkStyle?.summary ? (
+                    <p className="text-[var(--text-secondary)]">{assigneeWorkStyle.summary}</p>
+                  ) : (
+                    <p className="text-[var(--text-muted)]">Bu kişi için henüz bir çalışma tarzı analizi üretilmemiş.</p>
+                  )}
+                </div>
+              )}
+
+              {assigneeId && assigneeSelfAssessment && Object.keys(assigneeSelfAssessment).length > 0 && (
+                <div className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-xs">
+                  <p className="mb-1 font-medium text-[var(--text-secondary)]">Kendi Beyanı</p>
+                  <ul className="space-y-0.5 text-[var(--text-muted)]">
+                    {Object.entries(assigneeSelfAssessment).map(([key, value]) => (
+                      <li key={key}>{selfAssessmentLabel(key, value) ?? value}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {assigneeId !== (task.assignee_id ?? "") && (
                 <textarea
                   value={assigneeNote}
@@ -593,6 +712,49 @@ export function TaskDetailModal({
                 />
               )}
             </div>
+
+            {suggestions.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-[var(--text-secondary)]">Önerilen Atamalar</label>
+                <ul className="space-y-1.5">
+                  {suggestions.map((suggestion) => (
+                    <li
+                      key={suggestion.userId}
+                      className="rounded-[6px] border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-[var(--text-primary)]">
+                          {memberLabel(members, suggestion.userId)}
+                        </span>
+                        <span className="shrink-0 rounded-[6px] bg-[var(--accent)]/10 px-2 py-0.5 text-xs text-[var(--accent)]">
+                          %{suggestion.score} uyum
+                        </span>
+                      </div>
+                      {suggestion.reasons.length > 0 && (
+                        <p className="mt-0.5 text-xs text-[var(--text-muted)]">{suggestion.reasons.join(" · ")}</p>
+                      )}
+                      <div className="mt-2 flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSuggestions((prev) => prev.filter((s) => s.userId !== suggestion.userId))}
+                          className="rounded-[6px] px-2 py-1 text-xs text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-hover)] hover:text-[var(--text-primary)]"
+                        >
+                          Reddet
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => assignSuggested(suggestion.userId)}
+                          disabled={saving}
+                          className="rounded-[6px] bg-[var(--accent)]/10 px-2 py-1 text-xs font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/20 disabled:opacity-50"
+                        >
+                          Ata
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-[var(--text-secondary)]">Aktivite Geçmişi</label>
@@ -614,6 +776,60 @@ export function TaskDetailModal({
                 </ul>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-[var(--text-secondary)]">Yorumlar</label>
+          {commentsLoading ? (
+            <p className="text-xs text-[var(--text-muted)]">Yükleniyor...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-xs text-[var(--text-muted)]">Henüz bir yorum yok.</p>
+          ) : (
+            <ul className="max-h-32 space-y-2 overflow-y-auto pr-1">
+              {comments.map((comment) => (
+                <li key={comment.id} className="rounded-[6px] bg-[var(--surface-hover)] px-2.5 py-1.5 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-[var(--text-secondary)]">{memberLabel(members, comment.user_id)}</span>
+                    <span className="flex shrink-0 items-center gap-2 text-[var(--text-muted)]">
+                      {formatActivityTime(comment.created_at)}
+                      {comment.user_id === user?.id && (
+                        <button
+                          onClick={() => removeComment(comment.id)}
+                          aria-label="Yorumu kaldır"
+                          className="text-[var(--text-muted)] hover:text-[#ff6b5b]"
+                        >
+                          <Trash2 className="size-3" />
+                        </button>
+                      )}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 text-[var(--text-primary)]">{comment.content}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex items-center gap-2">
+            <Input
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addComment();
+                }
+              }}
+              placeholder="Bir yorum yaz..."
+              className="h-8 min-w-0 flex-1 rounded-[6px] border-[var(--surface-border)] bg-[var(--surface)] text-xs text-[var(--text-primary)] focus-visible:border-[#ff6b5b] focus-visible:ring-[#ff6b5b]/30"
+            />
+            <Button
+              type="button"
+              onClick={addComment}
+              disabled={postingComment || !commentInput.trim()}
+              className="h-8 shrink-0 rounded-[6px] bg-[var(--surface-hover)] px-2.5 text-xs text-[var(--text-primary)] hover:bg-[var(--surface-border)]"
+            >
+              Gönder
+            </Button>
           </div>
         </div>
 

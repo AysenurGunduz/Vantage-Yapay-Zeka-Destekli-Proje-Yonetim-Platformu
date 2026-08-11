@@ -192,6 +192,13 @@ create index idx_delay_risk_scores_task_id on delay_risk_scores (task_id);
 -- "assignee_id" aktivite kaydına eklenir, geçmişte kalıcı olarak durur.
 alter table task_activity_log add column note text;
 
+-- Kayıt sonrası sorulan "ne için kullanacaksın" cevabı ve kullanıcının kendi
+-- çalışma tarzına dair verdiği kısa öz-değerlendirme cevapları. İkincisi,
+-- görev geçmişinden hesaplanan çalışma tarzı analizinden ayrı tutulur ve
+-- arayüzde "kendi beyanı" olarak etiketlenir.
+alter table profiles add column usage_purpose text;
+alter table profiles add column self_reported_traits jsonb;
+
 -- Manuel efor girişi / sayaç (timer) durdurulunca eklenen zaman kaydı.
 -- Toplam harcanan süre bu tablodaki kayıtların toplanmasıyla hesaplanır,
 -- tasks üzerinde ayrı bir "spent_hours" kolonu tutulmaz (tek doğruluk kaynağı).

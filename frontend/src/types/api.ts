@@ -136,6 +136,49 @@ export interface SprintSummaryResult {
   periodDays: number;
 }
 
+export interface MyTaskSummary {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  due_date: string | null;
+  project_id: string;
+  project_name: string;
+  tags: string[];
+}
+
+export interface WorkStyleTraits {
+  completedTaskCount: number;
+  onTimeRate: number | null;
+  avgCompletionDays: number | null;
+  effortAccuracy: number | null;
+  topTags: string[];
+  priorityMix: Record<TaskPriority, number>;
+}
+
+export interface WorkStyleProfile {
+  id: string;
+  user_id: string;
+  traits: WorkStyleTraits;
+  summary: string;
+  model_used: string;
+  generated_at: string;
+}
+
+export interface AssignmentSuggestion {
+  userId: string;
+  score: number;
+  reasons: string[];
+}
+
+export interface TaskComment {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
 export type TaskDependencyType = "blocked_by" | "relates_to" | "duplicates";
 
 export interface TaskDependency {
