@@ -13,7 +13,13 @@ import {
 import { AlertTriangle, CalendarClock, CheckCircle2, Clock3, FolderKanban, ListTodo, Sparkles } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { apiFetch } from "../lib/apiClient";
-import type { DashboardRiskTask, DashboardStats, DashboardTaskSummary, RiskExplanation } from "../types/api";
+import type {
+  DashboardRiskTask,
+  DashboardStats,
+  DashboardTaskSummary,
+  ProgressSummaryFeedItem,
+  RiskExplanation,
+} from "../types/api";
 import { Logo } from "@/components/Logo";
 import { PanelSkeleton } from "@/components/Skeleton";
 import { Reveal } from "@/components/Reveal";
@@ -21,6 +27,7 @@ import { PageNav } from "@/components/PageNav";
 import { useTheme } from "@/lib/ThemeContext";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { NotificationBell } from "@/components/NotificationBell";
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu";
@@ -90,6 +97,33 @@ function formatDueDate(dueDate: string) {
     day: "numeric",
     month: "short",
   });
+}
+
+function formatGeneratedAt(value: string) {
+  return new Date(value).toLocaleDateString("tr-TR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function ProgressSummaryFeed({ items }: { items: ProgressSummaryFeedItem[] | null }) {
+  if (items === null) {
+    return <p className="text-sm text-[var(--text-muted)]">Yükleniyor...</p>;
+  }
+  if (items.length === 0) {
+    return <p className="text-sm text-[var(--text-muted)]">Henüz üretilmiş bir ilerleme özeti yok.</p>;
+  }
+
+  return (
+    <ul className="space-y-3">
+      {items.map((item) => (
+        <li key={item.id} className="rounded-[6px] border-l-2 border-[var(--accent)] bg-[var(--surface-hover)] px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-[var(--text-primary)]">{item.project_name}</span>
+            <span className="shrink-0 text-xs text-[var(--text-muted)]">{formatGeneratedAt(item.generated_at)}</span>
+          </div>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">{item.summary}</p>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 const TABS = [
@@ -231,12 +265,19 @@ export default function Overview() {
   const [activeTab, setActiveTab] = useState<TabId>("genel");
   const [riskTasks, setRiskTasks] = useState<DashboardRiskTask[] | null>(null);
   const [riskProjectFilter, setRiskProjectFilter] = useState("");
+  const [progressFeed, setProgressFeed] = useState<ProgressSummaryFeedItem[] | null>(null);
 
   useEffect(() => {
     apiFetch<DashboardStats>("/api/dashboard/stats")
       .then(setStats)
       .catch((err: unknown) => setError(errorMessage(err)))
       .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    apiFetch<ProgressSummaryFeedItem[]>("/api/dashboard/progress-feed")
+      .then(setProgressFeed)
+      .catch(() => setProgressFeed([]));
   }, []);
 
   useEffect(() => {
@@ -270,6 +311,7 @@ export default function Overview() {
           <Logo theme={theme} />
           <div className="flex flex-wrap items-center gap-3">
             <PageNav />
+            <NotificationBell theme={theme} />
             <ProfileMenu email={user?.email} onSignOut={signOut} theme={theme} />
           </div>
         </div>
@@ -309,6 +351,14 @@ export default function Overview() {
             <>
               {activeTab === "genel" && (
                 <div className="space-y-6">
+                  <Reveal as="section" className={panelClass}>
+                    <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--text-secondary)]">
+                      <Sparkles className="size-4 text-[var(--accent)]" />
+                      İlerleme Özetleri
+                    </h2>
+                    <ProgressSummaryFeed items={progressFeed} />
+                  </Reveal>
+
                   <Reveal className="grid grid-cols-2 gap-4 lg:grid-cols-4">
                     <StatTile
                       icon={<ListTodo className="size-4" />}

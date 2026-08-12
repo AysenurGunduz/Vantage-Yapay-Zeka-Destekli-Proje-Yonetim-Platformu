@@ -145,6 +145,16 @@ export interface TaskDependency {
   related_task: { id: string; title: string; status: TaskStatus } | null;
 }
 
+export interface ProgressSummaryFeedItem {
+  id: string;
+  project_id: string;
+  project_name: string;
+  period_start: string;
+  period_end: string;
+  summary: string;
+  generated_at: string;
+}
+
 export type InvitationStatus = "pending" | "accepted" | "revoked" | "expired";
 
 export interface OrganizationInvitation {
@@ -152,6 +162,18 @@ export interface OrganizationInvitation {
   email: string;
   role: OrganizationRole;
   status: InvitationStatus;
+  created_at: string;
+  expires_at: string;
+}
+
+export interface PendingInvitation {
+  id: string;
+  organization_id: string;
+  organization_name: string | null;
+  email: string;
+  role: OrganizationRole;
+  status: InvitationStatus;
+  token: string;
   created_at: string;
   expires_at: string;
 }

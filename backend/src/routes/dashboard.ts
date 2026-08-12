@@ -258,3 +258,46 @@ dashboardRouter.get("/risk", async (req, res) => {
 
   res.json(risky);
 });
+
+const PROGRESS_FEED_LIMIT = 10;
+
+dashboardRouter.get("/progress-feed", async (req, res) => {
+  const { data: memberships, error: membershipError } = await supabase
+    .from("project_members")
+    .select("project_id, projects(name)")
+    .eq("user_id", req.user!.id);
+
+  if (membershipError) {
+    res.status(500).json({ error: membershipError.message });
+    return;
+  }
+
+  const projectIds = memberships.map((row) => row.project_id);
+  if (projectIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const projectNames = new Map(
+    memberships.map((row) => [row.project_id, (row.projects as unknown as { name: string } | null)?.name ?? "İsimsiz proje"])
+  );
+
+  const { data: summaries, error: summariesError } = await supabase
+    .from("progress_summaries")
+    .select("id, project_id, period_start, period_end, summary, generated_at")
+    .in("project_id", projectIds)
+    .order("generated_at", { ascending: false })
+    .limit(PROGRESS_FEED_LIMIT);
+
+  if (summariesError) {
+    res.status(500).json({ error: summariesError.message });
+    return;
+  }
+
+  res.json(
+    summaries.map((entry) => ({
+      ...entry,
+      project_name: projectNames.get(entry.project_id) ?? "İsimsiz proje",
+    }))
+  );
+});

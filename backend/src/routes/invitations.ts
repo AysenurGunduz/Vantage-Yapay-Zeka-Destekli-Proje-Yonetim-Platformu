@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabaseClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { sendInvitationEmail } from "../services/email.js";
 
 export const organizationInvitationsRouter = Router({ mergeParams: true });
 
@@ -83,6 +84,19 @@ organizationInvitationsRouter.post("/", async (req, res) => {
     return;
   }
 
+  const [{ data: organization }, { data: inviterProfile }] = await Promise.all([
+    supabase.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+    supabase.from("profiles").select("full_name").eq("id", req.user!.id).maybeSingle(),
+  ]);
+
+  await sendInvitationEmail({
+    to: invitation.email,
+    organizationName: organization?.name ?? "Vantage",
+    inviterName: inviterProfile?.full_name ?? null,
+    role: invitation.role,
+    token: invitation.token,
+  });
+
   res.status(201).json(invitation);
 });
 
@@ -112,6 +126,37 @@ organizationInvitationsRouter.delete("/:invitationId", async (req, res) => {
 export const invitationsRouter = Router();
 
 invitationsRouter.use(requireAuth);
+
+invitationsRouter.get("/", async (req, res) => {
+  const email = req.user!.email?.toLowerCase();
+
+  const { data, error } = await supabase
+    .from("organization_invitations")
+    .select("id, organization_id, email, role, status, token, created_at, expires_at")
+    .eq("email", email)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const orgIds = [...new Set((data ?? []).map((invitation) => invitation.organization_id))];
+  const orgNameById = new Map<string, string>();
+  if (orgIds.length > 0) {
+    const { data: orgs } = await supabase.from("organizations").select("id, name").in("id", orgIds);
+    for (const org of orgs ?? []) orgNameById.set(org.id, org.name);
+  }
+
+  res.json(
+    (data ?? []).map((invitation) => ({
+      ...invitation,
+      organization_name: orgNameById.get(invitation.organization_id) ?? null,
+    })),
+  );
+});
 
 async function findInvitationByToken(token: string) {
   const { data } = await supabase

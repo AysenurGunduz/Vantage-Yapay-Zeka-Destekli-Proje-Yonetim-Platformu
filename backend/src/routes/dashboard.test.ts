@@ -33,6 +33,14 @@ let activityRows: {
   created_at: string;
 }[] = [];
 let timeEntryRows: { task_id: string; minutes: number }[] = [];
+let progressSummaryRows: {
+  id: string;
+  project_id: string;
+  period_start: string;
+  period_end: string;
+  summary: string;
+  generated_at: string;
+}[] = [];
 
 vi.mock("../lib/supabaseClient.js", () => ({
   supabase: {
@@ -56,6 +64,9 @@ vi.mock("../lib/supabaseClient.js", () => ({
       if (table === "task_time_entries") {
         return chain({ data: timeEntryRows, error: null });
       }
+      if (table === "progress_summaries") {
+        return chain({ data: progressSummaryRows, error: null });
+      }
       throw new Error(`Unexpected table: ${table}`);
     }),
   },
@@ -74,6 +85,7 @@ beforeEach(() => {
   taskRows = [];
   activityRows = [];
   timeEntryRows = [];
+  progressSummaryRows = [];
 });
 
 describe("dashboard routes", () => {
@@ -268,6 +280,42 @@ describe("dashboard routes", () => {
         to_value: "in_progress",
         created_at: "2026-07-29T10:00:00.000Z",
         task_title: "Design schema",
+      },
+    ]);
+  });
+
+  it("returns an empty progress feed when the user has no projects", async () => {
+    const res = await request(app).get("/api/dashboard/progress-feed").set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("attaches project names to progress summaries in the feed", async () => {
+    membershipRows = [{ project_id: "project-1", projects: { name: "Vantage" } }];
+    progressSummaryRows = [
+      {
+        id: "summary-1",
+        project_id: "project-1",
+        period_start: "2026-08-05",
+        period_end: "2026-08-12",
+        summary: "Bu dönemde 3 görev tamamlandı.",
+        generated_at: "2026-08-12T06:00:00.000Z",
+      },
+    ];
+
+    const res = await request(app).get("/api/dashboard/progress-feed").set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([
+      {
+        id: "summary-1",
+        project_id: "project-1",
+        period_start: "2026-08-05",
+        period_end: "2026-08-12",
+        summary: "Bu dönemde 3 görev tamamlandı.",
+        generated_at: "2026-08-12T06:00:00.000Z",
+        project_name: "Vantage",
       },
     ]);
   });

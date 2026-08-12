@@ -15,6 +15,8 @@ import { Reveal } from "@/components/Reveal";
 import { PageNav } from "@/components/PageNav";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/Breadcrumb";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { NotificationBell } from "@/components/NotificationBell";
+import { PendingInvitations } from "@/components/PendingInvitations";
 import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { AITaskSplitDialog } from "@/components/AITaskSplitDialog";
@@ -98,11 +100,15 @@ export default function Workspace() {
       return 0;
     });
 
-  useEffect(() => {
+  function refetchOrganizations() {
     apiFetch<Organization[]>("/api/organizations")
       .then(setOrganizations)
       .catch((err: unknown) => setError(errorMessage(err)))
       .finally(() => setOrgsLoading(false));
+  }
+
+  useEffect(() => {
+    refetchOrganizations();
   }, []);
 
   useEffect(() => {
@@ -259,6 +265,7 @@ export default function Workspace() {
           <Logo theme={theme} />
           <div className="flex flex-wrap items-center gap-3">
             <PageNav />
+            <NotificationBell theme={theme} />
             <ProfileMenu email={user?.email} onSignOut={signOut} theme={theme} />
           </div>
         </div>
@@ -270,6 +277,8 @@ export default function Workspace() {
         {error && (
           <p className="mb-6 rounded-[6px] bg-[#ff6b5b]/10 px-3 py-2 text-sm text-[#ff6b5b]">{error}</p>
         )}
+
+        <PendingInvitations onAccepted={refetchOrganizations} />
 
         <div className="flex flex-col gap-6 lg:flex-row">
           <aside className="flex w-full shrink-0 flex-col gap-6 lg:w-72">
@@ -582,7 +591,8 @@ export default function Workspace() {
           open={sprintSummaryOpen}
           theme={theme}
           onOpenChange={setSprintSummaryOpen}
-        />
+
+          />
       )}
     </div>
   );
