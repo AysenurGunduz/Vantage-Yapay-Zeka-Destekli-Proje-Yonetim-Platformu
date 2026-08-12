@@ -15,6 +15,7 @@ import { Reveal } from "@/components/Reveal";
 import { PageNav } from "@/components/PageNav";
 import { Breadcrumb, type BreadcrumbItem } from "@/components/Breadcrumb";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { NotificationBell } from "@/components/NotificationBell";
 import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { AITaskSplitDialog } from "@/components/AITaskSplitDialog";
@@ -259,6 +260,7 @@ export default function Workspace() {
           <Logo theme={theme} />
           <div className="flex flex-wrap items-center gap-3">
             <PageNav />
+            <NotificationBell theme={theme} />
             <ProfileMenu email={user?.email} onSignOut={signOut} theme={theme} />
           </div>
         </div>
@@ -582,7 +584,8 @@ export default function Workspace() {
           open={sprintSummaryOpen}
           theme={theme}
           onOpenChange={setSprintSummaryOpen}
-        />
+
+          />
       )}
     </div>
   );

@@ -9,6 +9,7 @@ import { Reveal } from "@/components/Reveal";
 import { PageNav } from "@/components/PageNav";
 import { Breadcrumb } from "@/components/Breadcrumb";
 import { ProfileMenu } from "@/components/ProfileMenu";
+import { NotificationBell } from "@/components/NotificationBell";
 import { useTheme } from "@/lib/ThemeContext";
 
 function errorMessage(err: unknown): string {
@@ -112,6 +113,7 @@ export default function Activity() {
           <Logo theme={theme} />
           <div className="flex flex-wrap items-center gap-3">
             <PageNav />
+            <NotificationBell theme={theme} />
             <ProfileMenu email={user?.email} onSignOut={signOut} theme={theme} />
           </div>
         </div>
