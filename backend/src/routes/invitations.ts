@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { supabase } from "../lib/supabaseClient.js";
 import { requireAuth } from "../middleware/requireAuth.js";
+import { sendInvitationEmail } from "../services/email.js";
 
 export const organizationInvitationsRouter = Router({ mergeParams: true });
 
@@ -82,6 +83,19 @@ organizationInvitationsRouter.post("/", async (req, res) => {
     res.status(500).json({ error: error.message });
     return;
   }
+
+  const [{ data: organization }, { data: inviterProfile }] = await Promise.all([
+    supabase.from("organizations").select("name").eq("id", orgId).maybeSingle(),
+    supabase.from("profiles").select("full_name").eq("id", req.user!.id).maybeSingle(),
+  ]);
+
+  await sendInvitationEmail({
+    to: invitation.email,
+    organizationName: organization?.name ?? "Vantage",
+    inviterName: inviterProfile?.full_name ?? null,
+    role: invitation.role,
+    token: invitation.token,
+  });
 
   res.status(201).json(invitation);
 });
