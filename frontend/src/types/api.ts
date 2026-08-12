@@ -165,3 +165,15 @@ export interface OrganizationInvitation {
   created_at: string;
   expires_at: string;
 }
+
+export interface PendingInvitation {
+  id: string;
+  organization_id: string;
+  organization_name: string | null;
+  email: string;
+  role: OrganizationRole;
+  status: InvitationStatus;
+  token: string;
+  created_at: string;
+  expires_at: string;
+}

@@ -113,6 +113,37 @@ export const invitationsRouter = Router();
 
 invitationsRouter.use(requireAuth);
 
+invitationsRouter.get("/", async (req, res) => {
+  const email = req.user!.email?.toLowerCase();
+
+  const { data, error } = await supabase
+    .from("organization_invitations")
+    .select("id, organization_id, email, role, status, token, created_at, expires_at")
+    .eq("email", email)
+    .eq("status", "pending")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const orgIds = [...new Set((data ?? []).map((invitation) => invitation.organization_id))];
+  const orgNameById = new Map<string, string>();
+  if (orgIds.length > 0) {
+    const { data: orgs } = await supabase.from("organizations").select("id, name").in("id", orgIds);
+    for (const org of orgs ?? []) orgNameById.set(org.id, org.name);
+  }
+
+  res.json(
+    (data ?? []).map((invitation) => ({
+      ...invitation,
+      organization_name: orgNameById.get(invitation.organization_id) ?? null,
+    })),
+  );
+});
+
 async function findInvitationByToken(token: string) {
   const { data } = await supabase
     .from("organization_invitations")
