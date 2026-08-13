@@ -314,7 +314,7 @@ taskRouter.post("/:taskId/risk-explanation", async (req, res) => {
 
   const spentHours = (timeEntries ?? []).reduce((sum: number, entry: { minutes: number }) => sum + entry.minutes, 0) / 60;
   const estimatedHours: number | null = task.estimated_hours;
-  const hasEffortData = estimatedHours != null && (timeEntries ?? []).length > 0;
+  const hasEffortData = estimatedHours != null && estimatedHours > 0 && (timeEntries ?? []).length > 0;
 
   const risk = calculateDelayRisk({
     status: task.status,

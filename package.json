@@ -1,0 +1,14 @@
+{
+  "name": "vantage-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1",
+    "@supabase/supabase-js": "^2.110.7",
+    "dotenv": "^17.4.2"
+  }
+}

@@ -207,13 +207,13 @@ function RiskTaskList({ tasks }: { tasks: DashboardRiskTask[] }) {
               </span>
             </div>
             <div className="mt-1">
-              {!state && (
+              {(!state || (state.error && !state.loading)) && (
                 <button
                   onClick={() => explain(task.id)}
                   className="inline-flex items-center gap-1 text-xs text-[var(--accent)] hover:underline"
                 >
                   <Sparkles className="size-3" />
-                  Neden riskli, AI&apos;a sor
+                  {state?.error ? "Tekrar dene" : "Neden riskli, AI'a sor"}
                 </button>
               )}
               {state?.loading && <p className="text-xs text-[var(--text-muted)]">Açıklama üretiliyor...</p>}
@@ -281,11 +281,19 @@ export default function Overview() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const query = riskProjectFilter ? `?projectId=${riskProjectFilter}` : "";
     setRiskTasks(null);
     apiFetch<DashboardRiskTask[]>(`/api/dashboard/risk${query}`)
-      .then(setRiskTasks)
-      .catch(() => setRiskTasks([]));
+      .then((data) => {
+        if (!cancelled) setRiskTasks(data);
+      })
+      .catch(() => {
+        if (!cancelled) setRiskTasks([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [riskProjectFilter]);
 
   const statusData = stats

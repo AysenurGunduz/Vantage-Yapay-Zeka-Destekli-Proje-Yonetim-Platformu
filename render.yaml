@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: vantage-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: OLLAMA_HOST
+        sync: false
+      - key: OLLAMA_MODEL_INTERACTIVE
+        value: qwen2.5:3b-instruct-q4_K_M
+      - key: OLLAMA_MODEL_BACKGROUND
+        value: qwen2.5:7b-instruct-q4_K_M
+      - key: FRONTEND_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false

@@ -96,6 +96,8 @@ function describeActivity(entry: ActivityEntry, members: OrganizationMember[]): 
       return `atandı: ${memberLabel(members, entry.from_value)} → ${memberLabel(members, entry.to_value)}`;
     case "dependency_added":
       return `bağlantı eklendi (${entry.to_value})`;
+    case "time_logged":
+      return `çalışma süresi eklendi: ${entry.to_value}`;
     default:
       return entry.action_type;
   }

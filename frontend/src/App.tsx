@@ -1,19 +1,28 @@
+import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
-import Landing from "./pages/Landing";
-import Home from "./pages/Home";
-import Workspace from "./pages/Workspace";
-import Overview from "./pages/Overview";
-import Activity from "./pages/Activity";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import InviteAccept from "./pages/InviteAccept";
-import TeamMembers from "./pages/TeamMembers";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { GuestRoute } from "./components/auth/GuestRoute";
+import { useTheme } from "./lib/ThemeContext";
+
+const Landing = lazy(() => import("./pages/Landing"));
+const Home = lazy(() => import("./pages/Home"));
+const Workspace = lazy(() => import("./pages/Workspace"));
+const Overview = lazy(() => import("./pages/Overview"));
+const Activity = lazy(() => import("./pages/Activity"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const InviteAccept = lazy(() => import("./pages/InviteAccept"));
+const TeamMembers = lazy(() => import("./pages/TeamMembers"));
+
+function RouteLoadingFallback() {
+  const { theme } = useTheme();
+  return <div className={`${theme}-theme min-h-screen bg-[var(--bg-base)]`} />;
+}
 
 function App() {
   return (
-    <Routes>
+    <Suspense fallback={<RouteLoadingFallback />}>
+      <Routes>
       <Route path="/" element={<Landing />} />
       <Route
         path="/dashboard"
@@ -79,7 +88,8 @@ function App() {
           </GuestRoute>
         }
       />
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 }
 

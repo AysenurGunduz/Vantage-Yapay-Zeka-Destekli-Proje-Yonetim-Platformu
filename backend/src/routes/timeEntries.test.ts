@@ -105,6 +105,15 @@ describe("time entries routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("rejects an amount that rounds down to zero minutes", async () => {
+    const res = await request(app)
+      .post("/api/tasks/task-1/time-entries")
+      .set("Authorization", "Bearer valid-token")
+      .send({ minutes: 0.4 });
+
+    expect(res.status).toBe(400);
+  });
+
   it("rejects logging time for a non-member", async () => {
     const taskRow = { id: "task-1", project_id: "project-1", title: "Design schema" };
     taskResponses = [chain({ maybeSingle: { data: taskRow, error: null } })];

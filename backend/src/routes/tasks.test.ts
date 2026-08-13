@@ -417,6 +417,35 @@ describe("tasks routes", () => {
     expect(promptArg).not.toContain("6.0 saat");
   });
 
+  it("excludes effort from the score and prompt when the estimate is zero hours", async () => {
+    const taskRow = {
+      id: "task-1",
+      project_id: "project-1",
+      title: "Design schema",
+      status: "in_progress",
+      due_date: "2026-08-10",
+      created_at: "2026-08-01T00:00:00.000Z",
+      estimated_hours: 0,
+    };
+    membership = { role_in_project: "member" };
+    taskResponses = [
+      chain({ maybeSingle: { data: taskRow, error: null } }),
+      chain({ then: { data: [], error: null } }),
+      chain({ then: { data: [{ minutes: 60 }], error: null } }),
+    ];
+
+    const res = await request(app)
+      .post("/api/tasks/task-1/risk-explanation")
+      .set("Authorization", "Bearer valid-token");
+
+    expect(res.status).toBe(200);
+    expect(res.body.factors.effort).toBe(0);
+
+    const { interactiveAI } = await import("../ai/index.js");
+    const promptArg = vi.mocked(interactiveAI.generateText).mock.calls.at(-1)?.[0] as string;
+    expect(promptArg).not.toContain("Efor karşılaştırması");
+  });
+
   it("returns 502 when the AI explanation call throws", async () => {
     const taskRow = {
       id: "task-1",

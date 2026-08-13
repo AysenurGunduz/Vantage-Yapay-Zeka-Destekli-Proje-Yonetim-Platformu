@@ -59,7 +59,21 @@ const trustedByLogos = ["Northwind", "Globex", "Initech", "Umbrella Co.", "Hooli
 
 const aiSubtasks = ["Onboarding formu tasarımı", "API şema taslağı", "Kullanıcı testi planı"];
 
-const kanbanPreviewColumns = [
+interface KanbanPreviewCard {
+  title: string;
+  meta: string;
+  priority?: "low" | "medium" | "high";
+  ai?: boolean;
+  overdue?: boolean;
+}
+
+interface KanbanPreviewColumn {
+  label: string;
+  count: number;
+  cards: KanbanPreviewCard[];
+}
+
+const kanbanPreviewColumns: KanbanPreviewColumn[] = [
   {
     label: "Yapılacak",
     count: 3,
@@ -374,7 +388,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="fiyatlandirma" className="border-t border-[var(--surface-border)] bg-[var(--bg-accent)]">
+      <section id="basla" className="border-t border-[var(--surface-border)] bg-[var(--bg-accent)]">
         <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10">
           <Reveal>
             <div className="relative overflow-hidden rounded-[8px] border border-[var(--surface-border)] bg-[var(--surface)] p-10 sm:p-14">
