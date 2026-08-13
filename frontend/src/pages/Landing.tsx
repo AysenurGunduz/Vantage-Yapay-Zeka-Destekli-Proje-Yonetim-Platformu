@@ -59,7 +59,21 @@ const trustedByLogos = ["Northwind", "Globex", "Initech", "Umbrella Co.", "Hooli
 
 const aiSubtasks = ["Onboarding formu tasarımı", "API şema taslağı", "Kullanıcı testi planı"];
 
-const kanbanPreviewColumns = [
+interface KanbanPreviewCard {
+  title: string;
+  meta: string;
+  priority?: "low" | "medium" | "high";
+  ai?: boolean;
+  overdue?: boolean;
+}
+
+interface KanbanPreviewColumn {
+  label: string;
+  count: number;
+  cards: KanbanPreviewCard[];
+}
+
+const kanbanPreviewColumns: KanbanPreviewColumn[] = [
   {
     label: "Yapılacak",
     count: 3,
