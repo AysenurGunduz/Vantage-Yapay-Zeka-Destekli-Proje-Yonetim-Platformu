@@ -38,9 +38,15 @@ taskTimeEntriesRouter.get("/", async (req, res) => {
 
 taskTimeEntriesRouter.post("/", async (req, res) => {
   const { taskId } = req.params as { taskId: string };
-  const { minutes, note } = req.body as { minutes?: number; note?: string };
+  const { minutes: rawMinutes, note } = req.body as { minutes?: number; note?: string };
 
-  if (!minutes || !Number.isFinite(minutes) || minutes <= 0) {
+  if (!rawMinutes || !Number.isFinite(rawMinutes) || rawMinutes <= 0) {
+    res.status(400).json({ error: "minutes must be a positive number" });
+    return;
+  }
+
+  const minutes = Math.round(rawMinutes);
+  if (minutes <= 0) {
     res.status(400).json({ error: "minutes must be a positive number" });
     return;
   }
@@ -61,7 +67,7 @@ taskTimeEntriesRouter.post("/", async (req, res) => {
     .insert({
       task_id: taskId,
       user_id: req.user!.id,
-      minutes: Math.round(minutes),
+      minutes,
       note: note?.trim() || null,
     })
     .select()
@@ -72,7 +78,7 @@ taskTimeEntriesRouter.post("/", async (req, res) => {
     return;
   }
 
-  await logActivity(taskId, req.user!.id, "time_logged", null, `${Math.round(minutes)} dk`, note);
+  await logActivity(taskId, req.user!.id, "time_logged", null, `${minutes} dk`, note);
 
   res.status(201).json(entry);
 });

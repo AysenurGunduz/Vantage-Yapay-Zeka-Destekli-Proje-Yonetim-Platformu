@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { History, PlusCircle, ArrowRightCircle, Flag, CalendarClock, Tag, UserRound } from "lucide-react";
+import { History, PlusCircle, ArrowRightCircle, Flag, CalendarClock, Tag, UserRound, Timer, Link2 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
 import { apiFetch } from "../lib/apiClient";
 import type { DashboardActivityEntry } from "../types/api";
@@ -53,6 +53,10 @@ function describeActivity(entry: DashboardActivityEntry): string {
       return "etiketler güncellendi";
     case "assignee_id":
       return "atanan kişi değişti";
+    case "time_logged":
+      return `çalışma süresi eklendi: ${entry.to_value}`;
+    case "dependency_added":
+      return `bağlantı eklendi (${entry.to_value})`;
     default:
       return entry.action_type;
   }
@@ -73,6 +77,8 @@ const ACTION_ICONS: Record<string, typeof History> = {
   due_date: CalendarClock,
   tags: Tag,
   assignee_id: UserRound,
+  time_logged: Timer,
+  dependency_added: Link2,
 };
 
 function ActivityDescription({ entry }: { entry: DashboardActivityEntry }) {

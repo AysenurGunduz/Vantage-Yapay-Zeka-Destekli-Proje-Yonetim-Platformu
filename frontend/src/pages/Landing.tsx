@@ -388,7 +388,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section id="fiyatlandirma" className="border-t border-[var(--surface-border)] bg-[var(--bg-accent)]">
+      <section id="basla" className="border-t border-[var(--surface-border)] bg-[var(--bg-accent)]">
         <div className="mx-auto max-w-7xl px-6 py-16 sm:px-10">
           <Reveal>
             <div className="relative overflow-hidden rounded-[8px] border border-[var(--surface-border)] bg-[var(--surface)] p-10 sm:p-14">
