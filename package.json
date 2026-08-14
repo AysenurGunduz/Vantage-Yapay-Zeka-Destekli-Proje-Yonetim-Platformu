@@ -4,7 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "tunnel": "node scripts/sync-ollama-tunnel.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
