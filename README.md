@@ -13,7 +13,7 @@
 
 Vantage, ekiplerin proje ve görev süreçlerini planlayıp Kanban panosu üzerinden takip edebildiği; buna ek olarak yapay zeka desteğiyle proje açıklamasından otomatik görev üretimi, öncelik/gecikme riski analizi, ekip üyesi çalışma tarzı analizi ve otomatik ilerleme özetleri sunan modüler bir web platformudur.
 
-**Canlı demo:** [vantage-proje.vercel.app](https://vantage-proje.vercel.app) — yapay zeka özellikleri, yerel çalışan modeli dışarı açan tünel aktif olduğu sürece kullanılabilir.
+**Canlı demo:** [vantage-proje.vercel.app](https://vantage-proje.vercel.app) — yapay zeka özellikleri, yerel çalışan modeli dışarı açan tünel aktif olduğu sürece kullanılabilir. Adım adım demo akışı için: [docs/demo-senaryosu.md](./docs/demo-senaryosu.md)
 
 > Detaylı teknik plan ve 20 günlük takvim için: [implementation_plan.md](./implementation_plan.md)
 
