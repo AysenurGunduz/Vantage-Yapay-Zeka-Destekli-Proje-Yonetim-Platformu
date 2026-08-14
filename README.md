@@ -8,7 +8,7 @@
   <img alt="Backend" src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?style=flat-square&logo=node.js&logoColor=white">
   <img alt="Database" src="https://img.shields.io/badge/Database-Supabase-3FCF8E?style=flat-square&logo=supabase&logoColor=white">
   <img alt="AI" src="https://img.shields.io/badge/AI-Local%20LLM%20(Ollama)-1E293B?style=flat-square">
-  <img alt="Status" src="https://img.shields.io/badge/Durum-Tamamland%C4%B1-22C55E?style=flat-square">
+  <img alt="Status" src="https://img.shields.io/badge/Durum-Geli%C5%9Ftirmeye%20A%C3%A7%C4%B1k-3B82F6?style=flat-square">
 </p>
 
 Vantage, ekiplerin proje ve görev süreçlerini planlayıp Kanban panosu üzerinden takip edebildiği; buna ek olarak yapay zeka desteğiyle proje açıklamasından otomatik görev üretimi, öncelik/gecikme riski analizi, ekip üyesi çalışma tarzı analizi ve otomatik ilerleme özetleri sunan modüler bir web platformudur.
@@ -163,7 +163,7 @@ Gereksinimler: Node.js 20+, bir [Supabase](https://supabase.com) projesi, [Ollam
 
 ## Geliştirme Durumu
 
-20 günlük staj takvimi tamamlandı. Güncel ilerleme ve gün gün plan için [implementation_plan.md](./implementation_plan.md) dosyasına bakınız.
+20 günlük staj takvimi kapsamında geliştirildi, çalışan bir MVP olarak canlıda. Proje geliştirmeye açık, yeni özellikler eklenebilir. Güncel ilerleme ve gün gün plan için [implementation_plan.md](./implementation_plan.md) dosyasına bakınız.
 
 ## Lisans
 
